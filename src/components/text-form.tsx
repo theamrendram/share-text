@@ -2,6 +2,9 @@
 import axios from "axios";
 import { useState } from "react";
 import { Button } from "./ui/button";
+import { Switch } from "./ui/switch";
+import { Label } from "./ui/label";
+import { Input } from "./ui/input";
 
 interface TextFormProps {
   setId: (id: string) => void;
@@ -10,12 +13,17 @@ interface TextFormProps {
 const TextForm: React.FC<TextFormProps> = ({ setId }) => {
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
-
+  const [isPublic, setIsPublic] = useState(true);
+  const [password, setPassword] = useState("");
   const handlePost = async () => {
     if (!text.trim()) return;
     setLoading(true);
     try {
-      const response = await axios.post(`/api/post`, { text });
+      const response = await axios.post(`/api/post`, {
+        text,
+        isPublic,
+        password,
+      });
 
       console.log("response", response.data);
       if (response.data?.id) {
@@ -46,10 +54,29 @@ const TextForm: React.FC<TextFormProps> = ({ setId }) => {
           </div>
         </div>
 
-        <div className="flex justify-between items-center">
-          <div className="text-sm text-gray-500">
-            {text.trim() ? "Ready to post" : "Type something to get started"}
+        <div className="flex justify-between items-center gap-2">
+          <div className="flex flex-col gap-2 w-full">
+            <div className="flex items-center gap-2">
+              <Switch
+                id="isPublic"
+                checked={isPublic}
+                onCheckedChange={setIsPublic}
+                className="data-[state=unchecked]:bg-gray-500 cursor-pointer"
+              />
+              <Label htmlFor="isPublic">Public</Label>
+            </div>
+            {!isPublic && (
+              <div className="flex items-center gap-2 py-1">
+                <Input
+                  type="password"
+                  placeholder="Enter password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </div>
+            )}
           </div>
+
           <Button
             onClick={handlePost}
             disabled={loading || !text.trim()}

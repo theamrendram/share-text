@@ -6,7 +6,7 @@ import { generateAlphanumeric } from "@/lib/generateAlphanumeric";
 export async function POST(req: NextRequest) {
   try {
     await connectDB();
-    const { text } = await req.json();
+    const { text, isPublic, password } = await req.json();
     if (!text) {
       return NextResponse.json({ error: "Text is required" }, { status: 400 });
     }
@@ -26,6 +26,8 @@ export async function POST(req: NextRequest) {
       id,
       accessCount: 0,
       ip,
+      isPublic,
+      password,
     });
 
     const baseUrl = req.nextUrl.origin;

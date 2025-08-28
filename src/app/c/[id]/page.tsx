@@ -1,38 +1,62 @@
 "use client";
 import axios from "axios";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 const ShowTextPage = () => {
-  const { id } = useParams();
+  const params = useParams<{ id: string | string[] }>();
+  const id = Array.isArray(params.id) ? params.id[0] : params.id;
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-
+  const [needsPassword, setNeedsPassword] = useState(false);
+  const [password, setPassword] = useState("");
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const submittingRef = useRef(false);
+  const [submitting, setSubmitting] = useState(false);
   useEffect(() => {
     async function fetchText() {
       if (!id) return;
-
       setLoading(true);
       setError(null);
-
+      const controller = new AbortController();
       try {
-        const response = await axios.get(`/api/post/${id}`);
-        console.log("response", response.data);
-        const data = response.data.data;
-        if (data.text) {
-          setText(data.text);
+        const response = await axios.get(`/api/post/${id}`, {
+          signal: controller.signal,
+        });
+        const { success, data } = response?.data ?? {};
+        if (success === false && data?.isPublic === false) {
+          setNeedsPassword(true);
+        } else {
+          setText(data?.text ?? "");
         }
-      } catch (error) {
-        console.log("error fetching text", error);
-        setError(
-          "Failed to load post. It might not exist or there was a network error."
-        );
+      } catch (error: any) {
+        if (axios.isCancel?.(error)) return;
+        const status = error?.response?.status;
+        if (status === 404) {
+          setError("The given id doesn't exist or it is expired.");
+        } else if (status === 401) {
+          setPasswordError("Invalid password");
+        } else {
+          setError(
+            "Failed to load post. It might not exist or there was a network error."
+          );
+        }
       } finally {
         setLoading(false);
       }
+      return () => controller.abort();
     }
     fetchText();
   }, [id]);
@@ -46,6 +70,64 @@ const ShowTextPage = () => {
       console.error("Failed to copy text:", error);
     }
   };
+
+  const handleTextWithPassword = async () => {
+    if (submittingRef.current) return;
+    submittingRef.current = true;
+    setSubmitting(true);
+    try {
+      const response = await axios.post(`/api/post/${id}`, { password });
+      const data = response?.data?.data;
+      setText(data?.text ?? "");
+      setNeedsPassword(false);
+      setPasswordError(null);
+    } catch (error: any) {
+      const message = error?.response?.data?.message || "Invalid password";
+      setPasswordError(message);
+      setNeedsPassword(true);
+    } finally {
+      submittingRef.current = false;
+      setSubmitting(false);
+    }
+  };
+
+  const handlePasswordKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" && password.trim()) {
+      handleTextWithPassword();
+    }
+  };
+
+  if (needsPassword) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-zinc-400 to-zinc-800 flex items-center justify-center p-4">
+        <Dialog open={needsPassword} onOpenChange={setNeedsPassword}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Enter Password</DialogTitle>
+            </DialogHeader>
+            <DialogDescription>
+              {passwordError && (
+                <p className="text-red-500 text-sm">{passwordError}</p>
+              )}
+              <Input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                onKeyDown={handlePasswordKeyDown}
+              />
+            </DialogDescription>
+            <DialogFooter>
+              <Button
+                onClick={handleTextWithPassword}
+                disabled={!password.trim() || submitting}>
+                {submitting ? "Submitting..." : "Enter"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+    );
+  }
 
   if (loading) {
     return (

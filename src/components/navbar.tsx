@@ -4,9 +4,10 @@ import React from "react";
 const Navbar = () => {
   return (
     <nav className="bg-transparent w-full text-black py-1.5 fixed top-0 left-0 z-50">
-      <ul className="flex items-center justify-between px-4 py-2 backdrop-blur-md bg-white/10 border border-white/20 rounded-lg mx-2 my-2">
-        <li>Home</li>
-        <span className="flex gap-4">
+      <div className="flex items-center justify-between px-4 py-2 backdrop-blur-md bg-white/10 border border-white/20 rounded-lg mx-2 my-2">
+        <Link href={"/"} className="text-white">
+          Home
+        </Link>
           <Link href={"https://github.com/theamrendram/share-text"} className="flex gap-2">
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -19,8 +20,7 @@ const Navbar = () => {
             </svg>
             Github
           </Link>
-        </span>
-      </ul>
+      </div>
     </nav>
   );
 };

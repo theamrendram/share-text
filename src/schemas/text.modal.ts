@@ -1,4 +1,10 @@
-import { Schema, models, model } from "mongoose";
+import {
+  Schema,
+  models,
+  model,
+  type Model,
+  type InferSchemaType,
+} from "mongoose";
 
 const userSchema = new Schema({
   text: {
@@ -17,6 +23,13 @@ const userSchema = new Schema({
   accessCount: {
     type: Number,
   },
+  isPublic: {
+    type: Boolean,
+    default: true,
+  },
+  password: {
+    type: String,
+  },
   createdAt: {
     type: Date,
     default: Date.now,
@@ -24,6 +37,10 @@ const userSchema = new Schema({
   },
 });
 
-const User = models.User || model("User", userSchema);
+type UserDoc = InferSchemaType<typeof userSchema>;
 
+const User =
+  (models.User as Model<UserDoc>) || model<UserDoc>("User", userSchema);
+
+export type { UserDoc };
 export { User };
